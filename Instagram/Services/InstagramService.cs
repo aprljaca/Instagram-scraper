@@ -3,6 +3,7 @@ using Instagram.Models;
 using System.Linq;
 using Microsoft.Win32;
 using PuppeteerSharp;
+using System;
 
 // PRIJE POKRETANJA PROMIJENITI https://www.instagram.com/username/
 
@@ -12,6 +13,7 @@ namespace Instagram.Services
     {
         public HttpClient client = new HttpClient();
         public RequestModel model = new RequestModel();
+
         public InstagramService()
         {
             model = getRequestAsync().GetAwaiter().GetResult();
@@ -142,9 +144,10 @@ namespace Instagram.Services
 
                 followingList.AddRange(instagramData.users);
 
-                // dobavljanje narednih 
+                // dobavljanje narednih user-a
                 string? nextMaxId = instagramData.next_max_id;
 
+                Random random = new Random();
                 while (nextMaxId != null)
                 {
                     url = url + "&max_id=" + nextMaxId;
@@ -153,7 +156,9 @@ namespace Instagram.Services
                     instagramData = JsonSerializer.Deserialize<Root>(json);
                     followingList.AddRange(instagramData.users);
                     nextMaxId = instagramData.next_max_id;
-                    await Task.Delay(2000);
+
+                    int delay = random.Next(2000, 5001);
+                    await Task.Delay(delay);
                 }
 
                 // Vraćanje rezultata kao JSON odgovor
@@ -161,12 +166,11 @@ namespace Instagram.Services
             }
             else
             {
-                // Vraćanje greške ako odgovor nije uspešan
-                throw new Exception("Greska");
+                throw new Exception("Greška");
             }
         }
 
-        public async Task<List<User>> NotFollowingBackAsync()
+        public async Task<List<UserResponseModel>> NotFollowingBackAsync()
         {
             var followersList = await GetFollowersAsync();
             var followingList = await GetFollowingAsync();
@@ -189,8 +193,52 @@ namespace Instagram.Services
                     notFollowingBack.Add(followingUser);
                 }
             }
-            return notFollowingBack;
+            return await UserToResponseModelAsync(notFollowingBack);
         }
+
+        public async Task<List<UserResponseModel>> FollowBackAsync()
+        {
+            var followersList = await GetFollowersAsync(); 
+            var followingList = await GetFollowingAsync(); 
+
+            List<User> FollowBack = new List<User>();
+
+            bool follow = false;
+
+            foreach (var followerUser in followersList)
+            {
+                follow = false;
+                foreach (var followingUser in followingList)
+                {
+                    if (followerUser.username == followingUser.username)
+                    {
+                        follow = true;
+                    }
+                }
+                if (!follow)
+                {
+                    FollowBack.Add(followerUser);
+                }
+            }
+            return await UserToResponseModelAsync(FollowBack);
+        }
+
+        public async Task<List<UserResponseModel>> UserToResponseModelAsync(List<User> users)
+        {
+            List<UserResponseModel> userResponse = new List<UserResponseModel>();
+            
+            foreach (var user in users)
+            {
+                UserResponseModel responseModel = new UserResponseModel();
+                responseModel.UserName = user.username;
+                responseModel.FullName = user.full_name;
+                responseModel.ProfilePicUrl = user.profile_pic_url;
+                userResponse.Add(responseModel);
+            }
+            return await Task.FromResult(userResponse);
+        }
+
+
     }
 }
 
