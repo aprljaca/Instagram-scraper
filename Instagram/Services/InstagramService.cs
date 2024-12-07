@@ -109,8 +109,6 @@ namespace Instagram.Services
 
             HttpResponseMessage response = await client.GetAsync(url);
 
-            //List<User> followersList = new List<User>();   
-
             try
             {
                 string json = await response.Content.ReadAsStringAsync();
@@ -150,8 +148,6 @@ namespace Instagram.Services
 
             HttpResponseMessage response = await client.GetAsync(url);
 
-            //List<User> followingList = new List<User>();
-
             try {
                 
                     string json = await response.Content.ReadAsStringAsync();
@@ -159,7 +155,7 @@ namespace Instagram.Services
 
                     followingList.AddRange(instagramData.users);
 
-                    // dobavljanje narednih user-a
+                    // Dobavljanje narednih user-a
                     string? nextMaxId = instagramData.next_max_id;
        
                     while (nextMaxId != null)
@@ -175,7 +171,7 @@ namespace Instagram.Services
                         await Task.Delay(delay);
                     }
 
-                    // Vraćanje rezultata kao JSON odgovor
+                    // Vraćanje rezultata kao JSON odgovor      
                     return followingList;
                 
             } catch (Exception)
@@ -186,9 +182,6 @@ namespace Instagram.Services
 
         public List<UserResponseModel> NotFollowingBackAsync()
         {
-            //var followersList = await GetFollowersAsync();
-            //var followingList = await GetFollowingAsync();
-
             List<User> notFollowingBack = new List<User>(); 
 
             bool followMe = false;
@@ -212,14 +205,9 @@ namespace Instagram.Services
 
         public List<UserResponseModel> FollowBackAsync()
         {
-            //var followersList = await GetFollowersAsync();  
-            //var followingList = await GetFollowingAsync(); 
-
             List<User> FollowBack = new List<User>();
 
             bool follow = false;
-
-            //var response = followersList.Intersect(followingList).ToList();
 
             foreach (var followerUser in followersList)
             {
@@ -237,7 +225,6 @@ namespace Instagram.Services
                 }
             }
             return UserToResponseModelAsync(FollowBack);
-            //return UserToResponseModelAsync(response);
         }
 
         public List<UserResponseModel> UserToResponseModelAsync(List<User> users)
