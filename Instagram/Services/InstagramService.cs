@@ -5,15 +5,13 @@ using Microsoft.Win32;
 using PuppeteerSharp;
 using System;
 
-// PRIJE POKRETANJA PROMIJENITI https://www.instagram.com/username/
-
 namespace Instagram.Services
 {
     public class InstagramService
     {
         public HttpClient client = new HttpClient();
-        
-        public RequestModel model = new RequestModel();
+
+        public static RequestModel model = null;
 
         public static List<User> followersList = new List<User>();
         
@@ -23,14 +21,19 @@ namespace Instagram.Services
 
         public InstagramService()
         {
-            model = getRequestAsync().GetAwaiter().GetResult();
-
-            GetFollowersAsync().GetAwaiter().GetResult(); // ne možemo koristiti await u konstruktoru 
-            GetFollowingAsync().GetAwaiter().GetResult();
-            
+            if(model == null)
+            {
+                model = new RequestModel();
+                model = getRequestAsync().GetAwaiter().GetResult();
+            }
             client.DefaultRequestHeaders.Add("Cookie", model.Cookie);
             client.DefaultRequestHeaders.Add("User-Agent", model.UserAgent);
             client.DefaultRequestHeaders.Add("x-ig-app-id", model.XIgAppId);
+            if (!followersList.Any())
+            {
+                GetFollowersAsync().GetAwaiter().GetResult(); // ne možemo koristiti await u konstruktoru 
+                GetFollowingAsync().GetAwaiter().GetResult();
+            }
         }
 
         private static string getChromePath()
@@ -74,7 +77,7 @@ namespace Instagram.Services
                 }
             };
 
-            var response = await page.GoToAsync("https://www.instagram.com/ig_testingtops/");
+            var response = await page.GoToAsync("https://www.instagram.com");
             await Task.Delay(2000);
 
             model.XIgAppId = x_ig_app_id;
@@ -181,7 +184,7 @@ namespace Instagram.Services
             }
         }
 
-        public async Task<List<UserResponseModel>> NotFollowingBackAsync()
+        public List<UserResponseModel> NotFollowingBackAsync()
         {
             //var followersList = await GetFollowersAsync();
             //var followingList = await GetFollowingAsync();
@@ -204,17 +207,19 @@ namespace Instagram.Services
                     notFollowingBack.Add(followingUser);
                 }
             }
-            return await UserToResponseModelAsync(notFollowingBack);
+            return UserToResponseModelAsync(notFollowingBack);
         }
 
-        public async Task<List<UserResponseModel>> FollowBackAsync()
+        public List<UserResponseModel> FollowBackAsync()
         {
-            //var followersList = await GetFollowersAsync(); 
+            //var followersList = await GetFollowersAsync();  
             //var followingList = await GetFollowingAsync(); 
 
             List<User> FollowBack = new List<User>();
 
             bool follow = false;
+
+            //var response = followersList.Intersect(followingList).ToList();
 
             foreach (var followerUser in followersList)
             {
@@ -231,10 +236,11 @@ namespace Instagram.Services
                     FollowBack.Add(followerUser);
                 }
             }
-            return await UserToResponseModelAsync(FollowBack);
+            return UserToResponseModelAsync(FollowBack);
+            //return UserToResponseModelAsync(response);
         }
 
-        public async Task<List<UserResponseModel>> UserToResponseModelAsync(List<User> users)
+        public List<UserResponseModel> UserToResponseModelAsync(List<User> users)
         {
             List<UserResponseModel> userResponse = new List<UserResponseModel>();
             
@@ -246,7 +252,7 @@ namespace Instagram.Services
                 responseModel.ProfilePicUrl = user.profile_pic_url;
                 userResponse.Add(responseModel);
             }
-            return await Task.FromResult(userResponse);
+            return userResponse;
         }
 
 

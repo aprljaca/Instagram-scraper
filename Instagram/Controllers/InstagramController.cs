@@ -8,18 +8,22 @@ namespace Instagram.Controllers
     [Route("[controller]")]
     public class InstagramController : ControllerBase
     {
-        [HttpGet("NotFollowingBack")]
-        public async Task<List<UserResponseModel>> NotFollowingBack()
+        InstagramService instagramService;
+        public InstagramController()    
         {
-            InstagramService instagramService = new InstagramService();
-            return await instagramService.NotFollowingBackAsync();    
+        instagramService = new InstagramService();
+        }
+
+        [HttpGet("NotFollowingBack")]
+        public List<UserResponseModel> NotFollowingBack()
+        {
+            return instagramService.NotFollowingBackAsync();    
         }
 
         [HttpGet("FollowBack")]
-        public async Task<List<UserResponseModel>> FollowBack()
+        public List<UserResponseModel> FollowBack()
         {
-            InstagramService instagramService = new InstagramService();
-            return await instagramService.FollowBackAsync();
+            return instagramService.FollowBackAsync();
         }
     }
 
