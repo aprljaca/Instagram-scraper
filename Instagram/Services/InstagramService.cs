@@ -12,12 +12,22 @@ namespace Instagram.Services
     public class InstagramService
     {
         public HttpClient client = new HttpClient();
+        
         public RequestModel model = new RequestModel();
+
+        public static List<User> followersList = new List<User>();
+        
+        public static List<User> followingList = new List<User>();
+
+        Random random = new Random();
 
         public InstagramService()
         {
             model = getRequestAsync().GetAwaiter().GetResult();
-            client.DefaultRequestHeaders.Add("Accept", "application/json");
+
+            GetFollowersAsync().GetAwaiter().GetResult(); // ne možemo koristiti await u konstruktoru 
+            GetFollowingAsync().GetAwaiter().GetResult();
+            
             client.DefaultRequestHeaders.Add("Cookie", model.Cookie);
             client.DefaultRequestHeaders.Add("User-Agent", model.UserAgent);
             client.DefaultRequestHeaders.Add("x-ig-app-id", model.XIgAppId);
@@ -35,8 +45,8 @@ namespace Instagram.Services
                 return chromePath;
             }
         }
-        // Funkcija koja nam dobavlja Cookie, User-Agent, x-ig-app-id
-        public async Task<RequestModel> getRequestAsync()
+        
+        public async Task<RequestModel> getRequestAsync() // Funkcija koja nam dobavlja Cookie, User-Agent, x-ig-app-id
         {
             RequestModel model = new RequestModel();
 
@@ -64,7 +74,7 @@ namespace Instagram.Services
                 }
             };
 
-            var response = await page.GoToAsync("https://www.instagram.com/username/");
+            var response = await page.GoToAsync("https://www.instagram.com/ig_testingtops/");
             await Task.Delay(2000);
 
             model.XIgAppId = x_ig_app_id;
@@ -96,19 +106,19 @@ namespace Instagram.Services
 
             HttpResponseMessage response = await client.GetAsync(url);
 
-            List<User> followersList = new List<User>();   
+            //List<User> followersList = new List<User>();   
 
-            if (response.IsSuccessStatusCode)
+            try
             {
                 string json = await response.Content.ReadAsStringAsync();
                 Root? instagramData = JsonSerializer.Deserialize<Root>(json);
 
                 followersList.AddRange(instagramData.users);
-                
-                // dobavljanje narednih 
-                string? nextMaxId = instagramData.next_max_id ;
 
-                while(nextMaxId != null)
+                // dobavljanje narednih 
+                string? nextMaxId = instagramData.next_max_id;
+
+                while (nextMaxId != null)
                 {
                     url = url + "&max_id=" + nextMaxId;
                     response = await client.GetAsync(url);
@@ -116,17 +126,19 @@ namespace Instagram.Services
                     instagramData = JsonSerializer.Deserialize<Root>(json);
                     followersList.AddRange(instagramData.users);
                     nextMaxId = instagramData.next_max_id;
-                    await Task.Delay(1000);
+
+                    int delay = random.Next(2000, 5001);
+                    await Task.Delay(delay);
                 }
 
                 // Vraćanje rezultata kao JSON odgovor
                 return followersList;
             }
-            else
+            catch (Exception)
             {
-                // Vraćanje greške ako odgovor nije uspešan
-                throw new Exception("Greska");
+                throw;
             }
+
         }
 
         public async Task<List<User>> GetFollowingAsync()
@@ -135,45 +147,44 @@ namespace Instagram.Services
 
             HttpResponseMessage response = await client.GetAsync(url);
 
-            List<User> followingList = new List<User>();
+            //List<User> followingList = new List<User>();
 
-            if (response.IsSuccessStatusCode)
-            {
-                string json = await response.Content.ReadAsStringAsync();
-                Root? instagramData = JsonSerializer.Deserialize<Root>(json);
+            try {
+                
+                    string json = await response.Content.ReadAsStringAsync();
+                    Root? instagramData = JsonSerializer.Deserialize<Root>(json);
 
-                followingList.AddRange(instagramData.users);
-
-                // dobavljanje narednih user-a
-                string? nextMaxId = instagramData.next_max_id;
-
-                Random random = new Random();
-                while (nextMaxId != null)
-                {
-                    url = url + "&max_id=" + nextMaxId;
-                    response = await client.GetAsync(url);
-                    json = await response.Content.ReadAsStringAsync();
-                    instagramData = JsonSerializer.Deserialize<Root>(json);
                     followingList.AddRange(instagramData.users);
-                    nextMaxId = instagramData.next_max_id;
 
-                    int delay = random.Next(2000, 5001);
-                    await Task.Delay(delay);
-                }
+                    // dobavljanje narednih user-a
+                    string? nextMaxId = instagramData.next_max_id;
+       
+                    while (nextMaxId != null)
+                    {
+                        url = url + "&max_id=" + nextMaxId;
+                        response = await client.GetAsync(url);
+                        json = await response.Content.ReadAsStringAsync();
+                        instagramData = JsonSerializer.Deserialize<Root>(json);
+                        followingList.AddRange(instagramData.users);
+                        nextMaxId = instagramData.next_max_id;
 
-                // Vraćanje rezultata kao JSON odgovor
-                return followingList;
-            }
-            else
+                        int delay = random.Next(2000, 5001);
+                        await Task.Delay(delay);
+                    }
+
+                    // Vraćanje rezultata kao JSON odgovor
+                    return followingList;
+                
+            } catch (Exception)
             {
-                throw new Exception("Greška");
+                throw;
             }
         }
 
         public async Task<List<UserResponseModel>> NotFollowingBackAsync()
         {
-            var followersList = await GetFollowersAsync();
-            var followingList = await GetFollowingAsync();
+            //var followersList = await GetFollowersAsync();
+            //var followingList = await GetFollowingAsync();
 
             List<User> notFollowingBack = new List<User>(); 
 
@@ -198,8 +209,8 @@ namespace Instagram.Services
 
         public async Task<List<UserResponseModel>> FollowBackAsync()
         {
-            var followersList = await GetFollowersAsync(); 
-            var followingList = await GetFollowingAsync(); 
+            //var followersList = await GetFollowersAsync(); 
+            //var followingList = await GetFollowingAsync(); 
 
             List<User> FollowBack = new List<User>();
 
